@@ -1,331 +1,129 @@
 
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fantasy Travel</title>
-<style>
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  padding: 20px 10px;
-  background: #0d1013;
-  color: #fff;
-  font-family: sans-serif;
+function xml(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&apos;"
+  })[c]);
 }
 
-.travel {
-  position: relative;
-  width: min(100%, 560px);
-  height: 128px;
-  margin: auto;
-  overflow: hidden;
-  border: 1px solid #53606b;
-  border-radius: 15px;
-  background: linear-gradient(#526783, #b4c4d0 57%, #536e65 58%, #263b36);
-}
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    const get = (key, fallback) =>
+      xml((url.searchParams.get(key) || fallback).slice(0, 50));
 
-.travel.night {
-  background: linear-gradient(#101a35, #56627e 57%, #35464b 58%, #172a29);
-}
+    const from = get("from", "출발지");
+    const to = get("to", "도착지");
+    const by = get("by", "도보");
+    const time = get("time", "☀️");
+    const season = get("season", "평시");
+    const bg = url.searchParams.get("bg") || "들판";
 
-.travel.desert {
-  background: linear-gradient(#7293ad, #e5c7a0 57%, #b99a69 58%, #67513a);
-}
+    let sky = "#a9dcf5";
+    let ground = "#7cbd68";
+    let hill = "#559a55";
+    let sun = "#ffe27a";
 
-.travel.forest {
-  background: linear-gradient(#536b65, #a4b9a2 57%, #3b5b45 58%, #182c27);
-}
+    if (bg.includes("숲")) {
+      ground = "#477d48";
+      hill = "#285c43";
+    } else if (bg.includes("사막")) {
+      ground = "#e8c783";
+      hill = "#c89c5a";
+    }
 
-.hill {
-  position: absolute;
-  left: -10%;
-  width: 120%;
-  height: 80px;
-  top: 43px;
-  background: #637c78;
-  border-radius: 50% 50% 0 0;
-}
+    if (season.includes("겨울")) {
+      ground = "#e8f0f3";
+      hill = "#a8c9d6";
+      sky = "#c8e0f0";
+    } else if (season.includes("가을")) {
+      ground = "#b87942";
+      hill = "#8c5636";
+    } else if (season.includes("봄")) {
+      ground = "#a8d77e";
+      hill = "#75b86b";
+    }
 
-.hill.back {
-  top: 55px;
-  left: 20%;
-  background: #425d58;
-}
+    if (time.includes("밤") || time.includes("🌙")) {
+      sky = "#202c50";
+      sun = "#f2edce";
+    }
 
-.night .hill { background: #344650; }
-.night .hill.back { background: #263b42; }
-.desert .hill { background: #d4ad78; }
-.desert .hill.back { background: #b88d5d; }
-.forest .hill { background: #52765b; }
-.forest .hill.back { background: #35543d; }
+    const trees = bg.includes("숲")
+      ? `<g fill="#24583c">
+          <path d="M60 155 L95 75 L130 155 Z"/>
+          <path d="M105 165 L145 80 L185 165 Z"/>
+          <path d="M540 155 L580 70 L620 155 Z"/>
+          <path d="M590 160 L630 90 L670 160 Z"/>
+        </g>`
+      : "";
 
-.sun {
-  position: absolute;
-  top: 18px;
-  right: 27%;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #ffe6aa;
-  box-shadow: 0 0 20px 7px #fff0c055;
-}
+    const traveler = by.includes("마차")
+      ? `<g transform="translate(310 125)">
+          <circle cx="18" cy="53" r="11" fill="#40342e"/>
+          <circle cx="65" cy="53" r="11" fill="#40342e"/>
+          <path d="M8 22 H76 L66 48 H18 Z"
+                fill="#a66a3f" stroke="#563d30" stroke-width="4"/>
+          <path d="M18 22 V4 H64 V22"
+                fill="#d7a16b" stroke="#563d30" stroke-width="4"/>
+          <path d="M0 40 L-35 28" stroke="#563d30" stroke-width="4"/>
+          <circle cx="-43" cy="24" r="8" fill="#49382d"/>
+        </g>`
+      : `<g transform="translate(355 125)" stroke="#354451"
+              stroke-width="6" stroke-linecap="round">
+          <circle cx="0" cy="0" r="11" fill="#f0c69c" stroke="none"/>
+          <path d="M0 13 L-4 42 M-2 22 L-23 34 M-2 22 L17 32"
+                fill="none"/>
+          <path d="M-4 42 L-20 65 M-4 42 L15 62"
+                fill="none"/>
+        </g>`;
 
-.night .sun {
-  background: #dbe4f6;
-  box-shadow: 0 0 15px #c5d6ff77;
-}
+    const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="720" height="240" viewBox="0 0 720 240">
+      <defs>
+        <linearGradient id="sky" x2="0" y2="1">
+          <stop stop-color="${sky}"/>
+          <stop offset="1" stop-color="#eef4dd"/>
+        </linearGradient>
+      </defs>
+      <rect width="720" height="240" rx="16" fill="url(#sky)"/>
+      <circle cx="630" cy="48" r="23" fill="${sun}"/>
+      <path d="M0 145 Q120 80 240 145 T480 130 T720 140 V240 H0Z"
+            fill="${hill}"/>
+      <path d="M0 175 Q160 130 310 175 T720 160 V240 H0Z"
+            fill="${ground}"/>
+      ${trees}
+      <path d="M0 210 Q360 165 720 210"
+            fill="none" stroke="#d8c49c" stroke-width="23"/>
+      <path d="M0 210 Q360 165 720 210"
+            fill="none" stroke="#f3e6c7" stroke-width="2"
+            stroke-dasharray="12 10"/>
+      ${traveler}
+      <rect x="20" y="18" width="235" height="49" rx="10"
+            fill="#ffffff" fill-opacity=".88"/>
+      <text x="34" y="37" font-size="11" fill="#66717c">FROM</text>
+      <text x="34" y="56" font-size="17" font-weight="bold"
+            fill="#263444">${from}</text>
+      <rect x="465" y="18" width="235" height="49" rx="10"
+            fill="#ffffff" fill-opacity=".88"/>
+      <text x="479" y="37" font-size="11" fill="#66717c">TO</text>
+      <text x="479" y="56" font-size="17" font-weight="bold"
+            fill="#263444">${to}</text>
+      <rect x="245" y="190" width="230" height="32" rx="16"
+            fill="#ffffff" fill-opacity=".88"/>
+      <text x="360" y="211" font-size="13" text-anchor="middle"
+            fill="#263444">${by} · ${time} · ${season}</text>
+    </svg>`;
 
-.cloud {
-  position: absolute;
-  top: 22px;
-  left: 30%;
-  width: 32px;
-  height: 9px;
-  border-radius: 50%;
-  background: #dce5ec55;
-}
-
-.cloud.two {
-  top: 37px;
-  left: 66%;
-  transform: scale(.7);
-}
-
-.label {
-  position: absolute;
-  top: 9px;
-  z-index: 5;
-  font-size: 10px;
-  font-weight: bold;
-  text-shadow: 0 1px 4px #17202a;
-}
-
-.label small {
-  display: block;
-  margin-bottom: 3px;
-  font-size: 7px;
-  letter-spacing: 2px;
-  opacity: .7;
-}
-
-.from { left: 14px; }
-.to { right: 14px; text-align: right; }
-
-.status {
-  position: absolute;
-  top: 7px;
-  left: 50%;
-  z-index: 5;
-  transform: translateX(-50%);
-  padding: 3px 10px;
-  border-radius: 10px;
-  background: #19232fc9;
-  font-size: 9px;
-  white-space: nowrap;
-}
-
-.road {
-  position: absolute;
-  bottom: 0;
-  height: 23px;
-  width: 100%;
-  border-top: 2px solid #8e9a8c66;
-  background: repeating-linear-gradient(
-    115deg, #34433d 0 13px, #28352f 13px 20px
-  );
-}
-
-.marker {
-  position: absolute;
-  bottom: 13px;
-  z-index: 3;
-  width: 8px;
-  height: 8px;
-  border: 1px solid #f6dca0;
-  border-radius: 50%;
-  background: #28343b;
-}
-
-.marker.start { left: 9%; }
-.marker.end { right: 9%; }
-
-.marker.end::after {
-  content: "";
-  position: absolute;
-  width: 1px;
-  height: 19px;
-  left: 3px;
-  bottom: 5px;
-  background: #f6dca0;
-}
-
-.walker {
-  position: absolute;
-  z-index: 4;
-  bottom: 13px;
-  left: 12%;
-  width: 22px;
-  height: 38px;
-  animation: walk 12s linear infinite alternate;
-}
-
-.head {
-  position: absolute;
-  top: 0;
-  left: 6px;
-  width: 11px;
-  height: 12px;
-  background: #e0bba0;
-  border: 2px solid #252a30;
-  border-radius: 40% 40% 35% 35%;
-}
-
-.hair {
-  position: absolute;
-  top: -3px;
-  left: 4px;
-  width: 14px;
-  height: 7px;
-  background: #24262e;
-  clip-path: polygon(0 100%, 10% 0, 35% 40%, 50% 0, 75% 30%, 100% 0, 90% 100%);
-}
-
-.body {
-  position: absolute;
-  top: 11px;
-  left: 5px;
-  width: 13px;
-  height: 17px;
-  border: 1px solid #151b25;
-  background: #30485e;
-}
-
-.body::after {
-  content: "";
-  position: absolute;
-  left: 1px;
-  top: 4px;
-  width: 9px;
-  border-top: 2px solid #c3a3a0;
-}
-
-.leg {
-  position: absolute;
-  top: 26px;
-  left: 7px;
-  width: 4px;
-  height: 11px;
-  background: #252d37;
-  transform-origin: top;
-  animation: leg .35s infinite alternate;
-}
-
-.leg.two {
-  left: 13px;
-  animation-delay: -.35s;
-}
-
-@keyframes leg {
-  from { transform: rotate(-25deg); }
-  to { transform: rotate(25deg); }
-}
-
-@keyframes walk {
-  from { left: 12%; }
-  to { left: calc(88% - 22px); }
-}
-
-.caption {
-  width: min(100%, 560px);
-  margin: 12px auto 0;
-  color: #abb6c0;
-  font-size: 12px;
-  line-height: 1.7;
-}
-
-.caption strong { color: #fff; }
-</style>
-</head>
-<body>
-
-<div class="travel" id="scene">
-  <div class="hill"></div>
-  <div class="hill back"></div>
-  <div class="sun"></div>
-  <div class="cloud"></div>
-  <div class="cloud two"></div>
-
-  <div class="label from">
-    <small>FROM</small>
-    <span id="from">넥타르</span>
-  </div>
-
-  <div class="status" id="status">이동 중 · 도보</div>
-
-  <div class="label to">
-    <small>TO</small>
-    <span id="to">헬름</span>
-  </div>
-
-  <div class="road"></div>
-  <div class="marker start"></div>
-  <div class="marker end"></div>
-
-  <div class="walker" id="walker">
-    <div class="head"></div>
-    <div class="hair"></div>
-    <div class="body"></div>
-    <div class="leg"></div>
-    <div class="leg two"></div>
-  </div>
-</div>
-
-<div class="caption">
-  <strong id="route">넥타르 → 헬름</strong><br>
-  <span id="details">들판을 따라 도보로 이동하고 있다.</span>
-</div>
-
-<script>
-const params = new URLSearchParams(location.search);
-
-const get = (key, fallback) =>
-  params.get(key) || fallback;
-
-const from = get("from", "넥타르");
-const to = get("to", "헬름");
-const by = get("by", "도보");
-const time = get("time", "day");
-const season = get("season", "평시");
-const bg = get("bg", "들판");
-
-document.getElementById("from").textContent = from;
-document.getElementById("to").textContent = to;
-document.getElementById("status").textContent =
-  "이동 중 · " + by;
-document.getElementById("route").textContent =
-  from + " → " + to;
-
-const scene = document.getElementById("scene");
-
-if (bg.includes("숲")) scene.classList.add("forest");
-else if (bg.includes("사막")) scene.classList.add("desert");
-
-if (time === "night" || time.includes("🌙") || time.includes("밤")) {
-  scene.classList.add("night");
-}
-
-const details = document.getElementById("details");
-details.textContent =
-  season + "의 " + bg + "에서 " + by + "로 이동하고 있다.";
-
-if (by.includes("말") || by.includes("마차")) {
-  document.getElementById("walker").style.filter =
-    "sepia(.5) saturate(1.5)";
-}
-</script>
-
-</body>
-</html>
+    return new Response(svg, {
+      headers: {
+        "Content-Type": "image/svg+xml; charset=utf-8",
+        "Cache-Control": "public, max-age=60"
+      }
+    });
+  }
+};
